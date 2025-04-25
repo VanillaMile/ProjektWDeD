@@ -1,5 +1,11 @@
 import polars as pl
 import numpy as np
+from example_data import *
+from time import time
+
+class StopException(Exception):
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
 
 class Tests:
     def __init__(self, data_path: str, disc_data_path: str, has_header: bool) -> None:
@@ -12,12 +18,120 @@ class Tests:
             self.data.columns = labels
             self.disc_data.columns = labels
         
-
     def check_data(self) -> None:
         print(self.data)
         print(self.disc_data)
 
         print(self.data['Dec'])
 
+    def _test_passed(self, message: str, passed: bool) -> None:
+        green = '\033[0;32m'
+        red = '\033[0;31m'
+        if passed:
+            print(f'{message.ljust(70, ".")}{green} passed')
+        else:
+            print(f'{message.ljust(70, ".")}{red} FAILED')
+        # clear
+        print("\033[0;0m", end='')
+
+    def _get_non_deterministic_objects_original_with_loss(self) -> int:
+        """Returns number of unique non-deterministic objects in the data"""
+        data = self.data.unique()
+        non_deterministic_obj = data.select(data.columns[:-1]).is_duplicated().sum()
+        return non_deterministic_obj
+    
+    def _get_non_deterministic_objects_disc_with_loss(self) -> int:
+        """Returns number of unique non-deterministic ranges in the data"""
+        data = self.disc_data.unique()
+        non_deterministic_rng = data.select(data.columns[:-1]).is_duplicated().sum()
+        return non_deterministic_rng
+    
+    
+    def _get_non_deterministic_objects_original_lossless(self, how: str = 'inner') -> int:
+        """Gets a list of all unique non-deterministic objects in the data and than returns how many of them are in source data.
+        For how use 'inner' or 'semi'"""
+        temp_data = self.data.unique()
+        odd_ones = temp_data.filter(temp_data.select(temp_data.columns[:-1]).is_duplicated())
+        joined = self.data.join(odd_ones, on=self.data.columns, how=how)
+        return joined.shape[0]
+
+    def _get_non_deterministic_objects_disc_lossless(self, how: str = 'inner') -> int:
+        """Gets a list of all unique non-deterministic ranges in the data and than returns how many of them are in source data.
+        For how use 'inner' or 'semi'"""
+        temp_data = self.disc_data.unique()
+        odd_ones = temp_data.filter(temp_data.select(temp_data.columns[:-1]).is_duplicated())
+        joined = self.disc_data.join(odd_ones, on=self.disc_data.columns, how=how)
+        return joined.shape[0]
+
+    def compare_non_deterministic_objects(self, lossless: bool = True, debug: bool = False) -> None:
+        """
+        with_loss method is skipping information which in rare cases may give wrong results.
+
+        If non-deterministic ranges are being merged into one range in discretized data
+        that means 2 pairs of non-deterministic objects like [1,1,1], [1,1,2], [2,2,1] and [2,2,2] 
+        can be merged into 1 range like [0;3,0;3,1] and [0;3,0;3,2].
+
+        In that case _get_non_deterministic_objects_original_with_loss() will return 4
+        and _get_non_deterministic_objects_disc_with_loss() will return 2.
+
+        So simply checking if the numbers of non-deterministic objects in original data 
+        and discretized data are the same will not work.
+
+        This opens a possibility of having bad non-deterministic ranges in discretized data passed instead of good ones.
+
+        More decisions doesn't affect the result since having 3+ decisions at same spot will result in having 3 unique ranges in discretized data.
+
+        with_loss DOESN'T RETURN NUMBER OF NON-DETERMINISTIC OBJECTS/RANGES IN DATA.
+        It only returns number of unique non-deterministic objects/ranges in data.
+
+        It is however, twice as fast as the lossless version, so if the problem of bad ranges is fixed in other tests
+        this may by a good way to check for non-deterministic objects/ranges in data.
+        """
+        test_name = 'Compare non-deterministic objects'
+        if lossless:
+            if self._get_non_deterministic_objects_disc_lossless() != self._get_non_deterministic_objects_original_lossless():
+                self._test_passed(test_name, False)
+                raise StopException(f"""Number of non-deterministic objects is not the same as in original data.
+                In original data: {self._get_non_deterministic_objects_original_lossless()} non-deterministic objects 
+                In discretized data: {self._get_non_deterministic_objects_disc_lossless()} non-deterministic objects""")
+        else:
+            if self._get_non_deterministic_objects_disc_with_loss() > self._get_non_deterministic_objects_original_with_loss():
+                self._test_passed(test_name, False)
+                raise StopException(f"""Number of non-deterministic objects is greater than original data.
+                In original data: {self._get_non_deterministic_objects_original_with_loss()} unique non-deterministic objects
+                In discretized data: {self._get_non_deterministic_objects_disc_with_loss()} unique non-deterministic objects""")
+        self._test_passed(test_name, True)
+        if debug:
+                print(f'In original data with loss: {self._get_non_deterministic_objects_original_with_loss()} unique non-deterministic objects')
+                print(f'In discretized data with loss: {self._get_non_deterministic_objects_disc_with_loss()} unique non-deterministic ranges')
+                print(f'In original data lossless: {self._get_non_deterministic_objects_original_lossless()} non-deterministic objects')
+                print(f'In discretized data lossless: {self._get_non_deterministic_objects_disc_lossless()} non-deterministic objects')
 
     # Other methods here
+
+if __name__ == "__main__":
+    data_path = 'iris2Dnondeterministic.csv'
+    disc_data_path = 'DISCiris2Dnondeterministic.csv'
+    # data_path = 'BADiris2Dnondeterministic.csv'
+    # disc_data_path = 'DISCBADiris2Dnondeterministic.csv'
+    tests = Tests(data_path, disc_data_path, has_header=False)
+    Time = time()
+    lossless_time = []
+    for i in range(10):
+        t0 = time()
+        tests.compare_non_deterministic_objects(lossless=True, debug=False)
+        t1 = time()
+        lossless_time.append(t1 - t0)
+    loss_time = []
+    for i in range(10):
+        t0 = time()
+        tests.compare_non_deterministic_objects(lossless=False, debug=False)
+        t1 = time()
+        loss_time.append(t1 - t0)
+    print(f"Average time with lossless: {sum(lossless_time) / len(lossless_time)} seconds")
+    print(f"Average time with loss: {sum(loss_time) / len(loss_time)} seconds")
+    tests.compare_non_deterministic_objects(lossless=True, debug=True)
+    iris = Iris2DNonDeterministic()
+    iris.plot()
+    iris = BADIris2DNonDeterministic()
+    iris.plot()
