@@ -22,7 +22,7 @@ class iris2D:
     
     def plot(self):
 
-        plt.scatter(self.data_df[:, 0], self.data_df[:, 1], c=self.data_df[:, 2], cmap='viridis')
+        plt.scatter(self.data_df[:, 0], self.data_df[:, 1], c=self.data_df[:, 2], cmap='Set1', alpha=0.5)
         plt.xlabel('x1')
         plt.ylabel('x2')
         plt.title(self.title)
@@ -140,6 +140,73 @@ class NoDecisionRange(iris2D):
         self.x2_cut = [0.5, 1.5]
         self.title = 'No Decision Range'
 
+class Iris2DNonDeterministic(iris2D):
+    def __init__(self):
+        """
+        This is an example of a good discretization of the iris dataset in 2D.
+        It has 9 non-deterministic objects in the original data.
+        It has a non-deterministic range that merged 2 unique pairs of non-deterministic objects.
+        Cuts at:
+
+        - X1: 4.95, 5.85, 9.0
+        - X2: 2.85
+
+        Non-deterministic objects: 
+            4.9,2.5,0
+            4.9,2.5,1
+            4.5,2.5,0
+            4.5,2.5,1
+            9.5,2.5,0
+            9.5,2.5,1
+            9.5,2.5,1
+            9.5,2.5,3
+            9.5,2.5,4
+        """
+        self.disc_df = pl.read_csv('DISCiris2Dnondeterministic.csv', separator=',', has_header=False, new_columns=['x1', 'x2', 'Dec'])
+        self.data_df = pl.read_csv('iris2Dnondeterministic.csv', separator=',', has_header=False, new_columns=['x1', 'x2', 'Dec'])
+
+        self.x1_cut = [4.95, 5.85, 9.0]
+        self.x2_cut = [2.85]
+        self.title = 'Iris Dataset 2D Good Discretization'
+
+class BADIris2DNonDeterministic(iris2D):
+    def __init__(self):
+        """
+        This is an example of a bad discretization of the iris dataset in 2D.
+        It has 9 non-deterministic objects in the original data.
+        It has a non-deterministic range that merged 2 unique pairs of non-deterministic objects.
+        It has more non-deterministic objects than the original data.
+        Cuts at:
+
+        - X1: 4.95, 5.85, 9.0
+        - X2: 2.85
+
+        Non-deterministic objects: 
+            4.9,2.5,0
+            4.9,2.5,1
+            4.5,2.5,0
+            4.5,2.5,1
+            9.5,2.5,0
+            9.5,2.5,1
+            9.5,2.5,1
+            9.5,2.5,3
+            9.5,2.5,4
+        
+        Bad ranges:
+            (9.0; inf),(2.85; inf),0
+            (9.0; inf),(2.85; inf),1
+
+        Objects in bad ranges:
+            9.5,4.0,0
+            9.5,5.0,1
+        """
+        self.disc_df = pl.read_csv('DISCBADiris2Dnondeterministic.csv', separator=',', has_header=False, new_columns=['x1', 'x2', 'Dec'])
+        self.data_df = pl.read_csv('BADiris2Dnondeterministic.csv', separator=',', has_header=False, new_columns=['x1', 'x2', 'Dec'])
+
+        self.x1_cut = [4.95, 5.85, 9.0]
+        self.x2_cut = [2.85]
+        self.title = 'Iris Dataset 2D Bad Discretization'
+
 if __name__ == "__main__":
     iris = iris2D()
     iris.plot()
@@ -149,3 +216,7 @@ if __name__ == "__main__":
     iris.plot()
     nodec = NoDecisionRange()
     nodec.plot()
+    iris = Iris2DNonDeterministic()
+    iris.plot()
+    iris = BADIris2DNonDeterministic()
+    iris.plot()
