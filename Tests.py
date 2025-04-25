@@ -24,6 +24,9 @@ class Tests:
 
         print(self.data['Dec'])
 
+    def test_all(self) -> None:
+        self.compare_non_deterministic_objects(lossless=True)
+
     def _test_passed(self, message: str, passed: bool) -> None:
         green = '\033[0;32m'
         red = '\033[0;31m'
@@ -100,7 +103,9 @@ class Tests:
                 raise StopException(f"""Number of non-deterministic objects is greater than original data.
                 In original data: {self._get_non_deterministic_objects_original_with_loss()} unique non-deterministic objects
                 In discretized data: {self._get_non_deterministic_objects_disc_with_loss()} unique non-deterministic objects""")
+            
         self._test_passed(test_name, True)
+        
         if debug:
                 print(f'In original data with loss: {self._get_non_deterministic_objects_original_with_loss()} unique non-deterministic objects')
                 print(f'In discretized data with loss: {self._get_non_deterministic_objects_disc_with_loss()} unique non-deterministic ranges')
@@ -109,29 +114,57 @@ class Tests:
 
     # Other methods here
 
+# Test the testing algorithm
+def test_compare_non_deterministic_objects(debug: bool = True, plot: bool = False) -> None:
+    color = '\033[0;33m'
+    clear = '\033[0;0m'
+
+    print (f'{color}Testing Iris 2D non-deterministic data with good discretization{clear}')
+    irisND = Iris2DNonDeterministic()
+    test_irisND = Tests(data_path=irisND.data_path, disc_data_path=irisND.disc_path, has_header=False)
+    test_irisND.compare_non_deterministic_objects(lossless=True, debug=debug)
+    if plot: 
+        irisND.plot()
+
+    try:
+        print (f'{color}Testing Iris 2D non-deterministic data with bad discretization{clear}')
+        irisNDBAD = BADIris2DNonDeterministic()
+        test_irisNDBAD = Tests(data_path=irisNDBAD.data_path, disc_data_path=irisNDBAD.disc_path, has_header=False)
+        test_irisNDBAD.compare_non_deterministic_objects(lossless=True, debug=debug)
+    except StopException as e:
+        # purple = '\033[0;35m'
+        print('\033[0;35m', end='')
+        print(e)
+        print("Test failed successfully")
+        if plot:
+            irisNDBAD.plot()
+        # clear
+        print("\033[0;0m", end='')
+
+    print (f'{color}Testing Iris 3D non-deterministic data with good discretization{clear}')
+    iris3D = Iris3D()
+    test_iris3D = Tests(data_path=iris3D.data_path, disc_data_path=iris3D.disc_path, has_header=False)
+    test_iris3D.compare_non_deterministic_objects(lossless=True, debug=debug)
+    if plot:
+        iris3D.plot()
+
+    try:
+        print (f'{color}Testing Iris 3D non-deterministic data with bad discretization{clear}')
+        iris3DBAD = Iris3DBAD()
+        test_iris3DBAD = Tests(data_path=iris3DBAD.data_path, disc_data_path=iris3DBAD.disc_path, has_header=False)
+        test_iris3DBAD.compare_non_deterministic_objects(lossless=True, debug=debug)
+    except StopException as e:
+        # purple
+        print('\033[0;35m', end='')
+        print(e)
+        print("Test failed successfully")
+        if plot:
+            iris3DBAD.plot()
+        # clear
+        print("\033[0;0m", end='')
+
 if __name__ == "__main__":
-    data_path = 'iris2Dnondeterministic.csv'
-    disc_data_path = 'DISCiris2Dnondeterministic.csv'
-    # data_path = 'BADiris2Dnondeterministic.csv'
-    # disc_data_path = 'DISCBADiris2Dnondeterministic.csv'
-    tests = Tests(data_path, disc_data_path, has_header=False)
-    Time = time()
-    lossless_time = []
-    for i in range(10):
-        t0 = time()
-        tests.compare_non_deterministic_objects(lossless=True, debug=False)
-        t1 = time()
-        lossless_time.append(t1 - t0)
-    loss_time = []
-    for i in range(10):
-        t0 = time()
-        tests.compare_non_deterministic_objects(lossless=False, debug=False)
-        t1 = time()
-        loss_time.append(t1 - t0)
-    print(f"Average time with lossless: {sum(lossless_time) / len(lossless_time)} seconds")
-    print(f"Average time with loss: {sum(loss_time) / len(loss_time)} seconds")
-    tests.compare_non_deterministic_objects(lossless=True, debug=True)
-    iris = Iris2DNonDeterministic()
-    iris.plot()
-    iris = BADIris2DNonDeterministic()
-    iris.plot()
+    test_compare_non_deterministic_objects(debug=True, plot=False)
+    # iris3D = Iris3D()
+    # test_iris3DBAD = Tests(data_path=iris3D.data_path, disc_data_path=iris3D.disc_path, has_header=False)
+    # test_iris3DBAD.test_all()
