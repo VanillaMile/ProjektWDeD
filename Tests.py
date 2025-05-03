@@ -163,8 +163,72 @@ def test_compare_non_deterministic_objects(debug: bool = True, plot: bool = Fals
         # clear
         print("\033[0;0m", end='')
 
+
+def validate_discretization_intervals(self) -> None:
+    """
+    Sprawdza, czy każda oryginalna wartość atrybutu warunkowego należy do 
+    odpowiadającego jej przedziału w danych zdyskretyzowanych.
+    W przypadku niezgodności zgłasza wyjątek StopException.
+    """
+    test_name = 'LA: Sprawdzenie poprawności przypisania do przedziałów'
+    print(f"\n{test_name}...")
+
+    conditional_attributes = self.data.columns[:-1] 
+    num_rows = self.data.shape[0]
+
+    def check_value_in_interval(value, interval_str):
+        interval_str = str(interval_str).strip()
+        import re
+        import math
+
+       
+        try:
+            interval_val = float(interval_str)
+            return math.isclose(value, interval_val)
+        except ValueError:
+             pass 
+
+        m = re.match(r"([(\[])\s*(-inf|[-+]?\d*\.?\d+)\s*;\s*(inf|[-+]?\d*\.?\d+)\s*([)\]])", interval_str)
+        if not m:
+            print(f"  OSTRZEŻENIE: Nie można sparsować przedziału: '{interval_str}'")
+            return False 
+
+        left_bracket, lower_str, upper_str, right_bracket = m.groups()
+
+        lower = -float('inf') if lower_str == '-inf' else float(lower_str)
+        upper = float('inf') if upper_str == 'inf' else float(upper_str)
+
+        lower_ok = value > lower if left_bracket == '(' else value >= lower
+        upper_ok = value < upper if right_bracket == ')' else value <= upper
+
+        return lower_ok and upper_ok
+
+    for i in range(num_rows):
+        for j, col_name in enumerate(conditional_attributes):
+            original_value = self.data[i, j]
+            interval_representation = self.disc_data[i, j]
+
+        
+            try:
+               original_value_float = float(original_value)
+            except (ValueError, TypeError):
+               continue 
+
+            if not check_value_in_interval(original_value_float, interval_representation):
+                self._test_passed(test_name, False)
+                raise StopException(
+                    f"Błąd dyskretyzacji! Wartość {original_value_float} (wiersz {i}, kolumna '{col_name}') "
+                    f"nie należy do przedziału '{interval_representation}'."
+                )
+        if (i + 1) % 100 == 0: print(f"  Sprawdzono {i+1}/{num_rows} wierszy.")
+
+    self._test_passed(test_name, True)
+    print("Wszystkie wartości mieszczą się w swoich przedziałach.")
+
 if __name__ == "__main__":
     test_compare_non_deterministic_objects(debug=True, plot=False)
     # iris3D = Iris3D()
     # test_iris3DBAD = Tests(data_path=iris3D.data_path, disc_data_path=iris3D.disc_path, has_header=False)
     # test_iris3DBAD.test_all()
+
+    
