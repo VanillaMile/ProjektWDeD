@@ -8,6 +8,23 @@ class StopException(Exception):
         super().__init__(message)
 
 class Tests:
+    def check_data_size(self) -> None:
+        """
+        Sprawdza, czy liczba obiektów w danych oryginalnych i zdyskretyzowanych jest taka sama.
+        W przypadku niezgodności zgłasza wyjątek StopException.
+        """
+        original_size = self.data.shape[0]
+        discretized_size = self.disc_data.shape[0]
+        test_name = 'Sprawdzenie liczby obiektów'
+
+        if original_size != discretized_size:
+            self._test_passed(test_name, False)
+            raise StopException(
+                f"Niezgodna liczba obiektów! Oryginalne: {original_size}, Zdyskretyzowane: {discretized_size}"
+            )
+        else:
+            self._test_passed(test_name, True)
+            print(f"Liczba obiektów zgodna: {original_size}")
     def __init__(self, data_path: str, disc_data_path: str, has_header: bool) -> None:
         self.data = pl.read_csv(data_path, separator=',', has_header=has_header)
         self.disc_data = pl.read_csv(disc_data_path, separator=',', has_header=has_header)
