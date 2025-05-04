@@ -130,6 +130,32 @@ class Tests:
                 print(f'In discretized data lossless: {self._get_non_deterministic_objects_disc_lossless()} non-deterministic objects')
 
     # Other methods here
+    def count_discretization_cuts(self) -> int:
+        total_cuts = 0
+        conditional_attributes = self.disc_data.columns[:-1]  # Pomijamy kolumnę decyzyjną
+
+        print("\nLiczenie cięć dyskretyzacji...")
+        for col_name in conditional_attributes:
+            unique_intervals = self.disc_data[col_name].unique().to_list()
+            cuts_for_attribute = set()
+
+            #Parsowanie
+            for interval_str in unique_intervals:
+                interval_str = str(interval_str).strip()
+                import re
+                numbers = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", interval_str)
+                for num_str in numbers:
+                    try:
+                        cuts_for_attribute.add(float(num_str))
+                    except ValueError:
+                        pass
+
+            num_cuts_attr = len(cuts_for_attribute)
+            print(f"  Atrybut '{col_name}': {num_cuts_attr} unikalnych cięć.")
+            total_cuts += num_cuts_attr
+
+        print(f"Łączna liczba unikalnych cięć: {total_cuts}")
+        return total_cuts
 
     # Test the testing algorithm
     def test_compare_non_deterministic_objects(debug: bool = True, plot: bool = False) -> None:
