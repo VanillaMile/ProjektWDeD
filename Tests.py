@@ -131,116 +131,147 @@ class Tests:
 
     # Other methods here
 
-# Test the testing algorithm
-def test_compare_non_deterministic_objects(debug: bool = True, plot: bool = False) -> None:
-    color = '\033[0;33m'
-    clear = '\033[0;0m'
+    # Test the testing algorithm
+    def test_compare_non_deterministic_objects(debug: bool = True, plot: bool = False) -> None:
+        color = '\033[0;33m'
+        clear = '\033[0;0m'
 
-    print (f'{color}Testing Iris 2D non-deterministic data with good discretization{clear}')
-    irisND = Iris2DNonDeterministic()
-    test_irisND = Tests(data_path=irisND.data_path, disc_data_path=irisND.disc_path, has_header=False)
-    test_irisND.compare_non_deterministic_objects(lossless=True, debug=debug)
-    if plot: 
-        irisND.plot()
-
-    try:
-        print (f'{color}Testing Iris 2D non-deterministic data with bad discretization{clear}')
-        irisNDBAD = BADIris2DNonDeterministic()
-        test_irisNDBAD = Tests(data_path=irisNDBAD.data_path, disc_data_path=irisNDBAD.disc_path, has_header=False)
-        test_irisNDBAD.compare_non_deterministic_objects(lossless=True, debug=debug)
-    except StopException as e:
-        # purple = '\033[0;35m'
-        print('\033[0;35m', end='')
-        print(e)
-        print("Test failed successfully")
+        print (f'{color}Testing Iris 2D non-deterministic data with good discretization{clear}')
+        irisND = Iris2DNonDeterministic()
+        test_irisND = Tests(data_path=irisND.data_path, disc_data_path=irisND.disc_path, has_header=False)
+        test_irisND.compare_non_deterministic_objects(lossless=True, debug=debug)
         if plot:
-            irisNDBAD.plot()
-        # clear
-        print("\033[0;0m", end='')
+            irisND.plot()
 
-    print (f'{color}Testing Iris 3D non-deterministic data with good discretization{clear}')
-    iris3D = Iris3D()
-    test_iris3D = Tests(data_path=iris3D.data_path, disc_data_path=iris3D.disc_path, has_header=False)
-    test_iris3D.compare_non_deterministic_objects(lossless=True, debug=debug)
-    if plot:
-        iris3D.plot()
-
-    try:
-        print (f'{color}Testing Iris 3D non-deterministic data with bad discretization{clear}')
-        iris3DBAD = Iris3DBAD()
-        test_iris3DBAD = Tests(data_path=iris3DBAD.data_path, disc_data_path=iris3DBAD.disc_path, has_header=False)
-        test_iris3DBAD.compare_non_deterministic_objects(lossless=True, debug=debug)
-    except StopException as e:
-        # purple
-        print('\033[0;35m', end='')
-        print(e)
-        print("Test failed successfully")
-        if plot:
-            iris3DBAD.plot()
-        # clear
-        print("\033[0;0m", end='')
-
-
-def validate_discretization_intervals(self) -> None:
-    """
-    Sprawdza, czy każda oryginalna wartość atrybutu warunkowego należy do 
-    odpowiadającego jej przedziału w danych zdyskretyzowanych.
-    W przypadku niezgodności zgłasza wyjątek StopException.
-    """
-    test_name = 'LA: Sprawdzenie poprawności przypisania do przedziałów'
-    print(f"\n{test_name}...")
-
-    conditional_attributes = self.data.columns[:-1] 
-    num_rows = self.data.shape[0]
-
-    def check_value_in_interval(value, interval_str):
-        interval_str = str(interval_str).strip()
-        import re
-        import math
-
-       
         try:
-            interval_val = float(interval_str)
-            return math.isclose(value, interval_val)
-        except ValueError:
-             pass 
+            print (f'{color}Testing Iris 2D non-deterministic data with bad discretization{clear}')
+            irisNDBAD = BADIris2DNonDeterministic()
+            test_irisNDBAD = Tests(data_path=irisNDBAD.data_path, disc_data_path=irisNDBAD.disc_path, has_header=False)
+            test_irisNDBAD.compare_non_deterministic_objects(lossless=True, debug=debug)
+        except StopException as e:
+            # purple = '\033[0;35m'
+            print('\033[0;35m', end='')
+            print(e)
+            print("Test failed successfully")
+            if plot:
+                irisNDBAD.plot()
+            # clear
+            print("\033[0;0m", end='')
 
-        m = re.match(r"([(\[])\s*(-inf|[-+]?\d*\.?\d+)\s*;\s*(inf|[-+]?\d*\.?\d+)\s*([)\]])", interval_str)
-        if not m:
-            print(f"  OSTRZEŻENIE: Nie można sparsować przedziału: '{interval_str}'")
-            return False 
+        print (f'{color}Testing Iris 3D non-deterministic data with good discretization{clear}')
+        iris3D = Iris3D()
+        test_iris3D = Tests(data_path=iris3D.data_path, disc_data_path=iris3D.disc_path, has_header=False)
+        test_iris3D.compare_non_deterministic_objects(lossless=True, debug=debug)
+        if plot:
+            iris3D.plot()
 
-        left_bracket, lower_str, upper_str, right_bracket = m.groups()
+        try:
+            print (f'{color}Testing Iris 3D non-deterministic data with bad discretization{clear}')
+            iris3DBAD = Iris3DBAD()
+            test_iris3DBAD = Tests(data_path=iris3DBAD.data_path, disc_data_path=iris3DBAD.disc_path, has_header=False)
+            test_iris3DBAD.compare_non_deterministic_objects(lossless=True, debug=debug)
+        except StopException as e:
+            # purple
+            print('\033[0;35m', end='')
+            print(e)
+            print("Test failed successfully")
+            if plot:
+                iris3DBAD.plot()
+            # clear
+            print("\033[0;0m", end='')
 
-        lower = -float('inf') if lower_str == '-inf' else float(lower_str)
-        upper = float('inf') if upper_str == 'inf' else float(upper_str)
+    def count_discretization_cuts(self) -> int:
+        """
+        Wylicza łączną liczbę unikalnych cięć użytych we wszystkich atrybutach warunkowych
+        na podstawie analizy przedziałów w danych zdyskretyzowanych.
+        Zwraca: Łączna liczba cięć.
+        """
+        total_cuts = 0
+        conditional_attributes = self.disc_data.columns[:-1]
 
-        lower_ok = value > lower if left_bracket == '(' else value >= lower
-        upper_ok = value < upper if right_bracket == ')' else value <= upper
+        print("\nLiczenie cięć dyskretyzacji...")
+        for col_name in conditional_attributes:
+            unique_intervals = self.disc_data[col_name].unique().to_list()
+            cuts_for_attribute = set()
 
-        return lower_ok and upper_ok
 
-    for i in range(num_rows):
-        for j, col_name in enumerate(conditional_attributes):
-            original_value = self.data[i, j]
-            interval_representation = self.disc_data[i, j]
+            for interval_str in unique_intervals:
+                interval_str = str(interval_str).strip()
+                import re
+                numbers = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", interval_str)
 
-        
+                for num_str in numbers:
+                    try:
+                        cuts_for_attribute.add(float(num_str))
+                    except ValueError:
+                        pass
+
+            num_cuts_attr = len(cuts_for_attribute)
+            print(f"  Atrybut '{col_name}': {num_cuts_attr} unikalnych cięć.")
+            total_cuts += num_cuts_attr
+
+        print(f"Łączna liczba unikalnych cięć: {total_cuts}")
+        return total_cuts
+
+    def validate_discretization_intervals(self) -> None:
+        """
+        Sprawdza, czy każda oryginalna wartość atrybutu warunkowego należy do
+        odpowiadającego jej przedziału w danych zdyskretyzowanych.
+        W przypadku niezgodności zgłasza wyjątek StopException.
+        """
+        test_name = 'LA: Sprawdzenie poprawności przypisania do przedziałów'
+
+        conditional_attributes = self.data.columns[:-1]
+        num_rows = self.data.shape[0]
+
+        def check_value_in_interval(value, interval_str):
+            interval_str = str(interval_str).strip()
+            import re
+            import math
+
+
             try:
-               original_value_float = float(original_value)
-            except (ValueError, TypeError):
-               continue 
+                interval_val = float(interval_str)
+                return math.isclose(value, interval_val)
+            except ValueError:
+                 pass
 
-            if not check_value_in_interval(original_value_float, interval_representation):
-                self._test_passed(test_name, False)
-                raise StopException(
-                    f"Błąd dyskretyzacji! Wartość {original_value_float} (wiersz {i}, kolumna '{col_name}') "
-                    f"nie należy do przedziału '{interval_representation}'."
-                )
-        if (i + 1) % 100 == 0: print(f"  Sprawdzono {i+1}/{num_rows} wierszy.")
+            m = re.match(r"([(\[])\s*(-inf|[-+]?\d*\.?\d+)\s*;\s*(inf|[-+]?\d*\.?\d+)\s*([)\]])", interval_str)
+            if not m:
+                print(f"  OSTRZEŻENIE: Nie można sparsować przedziału: '{interval_str}'")
+                return False
 
-    self._test_passed(test_name, True)
-    print("Wszystkie wartości mieszczą się w swoich przedziałach.")
+            left_bracket, lower_str, upper_str, right_bracket = m.groups()
+
+            lower = -float('inf') if lower_str == '-inf' else float(lower_str)
+            upper = float('inf') if upper_str == 'inf' else float(upper_str)
+
+            lower_ok = value > lower if left_bracket == '(' else value >= lower
+            upper_ok = value < upper if right_bracket == ')' else value <= upper
+
+            return lower_ok and upper_ok
+
+        for i in range(num_rows):
+            for j, col_name in enumerate(conditional_attributes):
+                original_value = self.data[i, j]
+                interval_representation = self.disc_data[i, j]
+
+
+                try:
+                   original_value_float = float(original_value)
+                except (ValueError, TypeError):
+                   continue
+
+                if not check_value_in_interval(original_value_float, interval_representation):
+                    self._test_passed(test_name, False)
+                    raise StopException(
+                        f"Błąd dyskretyzacji! Wartość {original_value_float} (wiersz {i}, kolumna '{col_name}') "
+                        f"nie należy do przedziału '{interval_representation}'."
+                    )
+            if (i + 1) % 100 == 0: print(f"  Sprawdzono {i+1}/{num_rows} wierszy.")
+
+        self._test_passed(test_name, True)
+        print("Wszystkie wartości mieszczą się w swoich przedziałach.")
 
 if __name__ == "__main__":
     test_compare_non_deterministic_objects(debug=True, plot=False)
