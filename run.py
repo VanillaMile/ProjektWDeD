@@ -8,8 +8,12 @@ def example_algorithm(data_path: str) -> None:
     pass
 
 if __name__ == "__main__":
-    data_paths = ['data1.csv', 'data1.csv']
-    disc_data_paths = ['DISCdata1.csv', 'DISCdata1.csv']
+    data_paths = ['data1.csv', 'data1.csv', 'example_data_csv/iris2D.csv', 'example_data_csv/iris3D.csv', 
+                  'example_data_csv/iris3D.csv', 'example_data_csv/nodec.csv', 
+                  'example_data_csv/iris2Dnondeterministic.csv', 'example_data_csv/BADiris2Dnondeterministic.csv']
+    disc_data_paths = ['DISCdata1.csv', 'DISCdata1.csv', 'example_disc_csv/DISCiris2D.csv', 
+                       'example_disc_csv/DISCiris3D.csv', 'example_disc_csv/DISCiris3DBAD.csv', 'example_disc_csv/DISCnodec.csv',
+                       'example_disc_csv/DISCiris2Dnondeterministic.csv', 'example_disc_csv/DISCBADiris2Dnondeterministic.csv']
 
     purple = '\033[0;35m'
     clear = '\033[0;0m'
@@ -26,7 +30,7 @@ if __name__ == "__main__":
 
             tests = Tests(data_path, disc_data_path, has_header=False)
 
-            tests.test_all()
+            tests.test_all(debug=False)
 
             cuts_i = tests.count_discretization_cuts()
             det_i = tests.non_deterministic_objects_original
@@ -46,6 +50,8 @@ if __name__ == "__main__":
             print(f"{red}BŁĄD:{clear} {purple}Nie znaleziono jednego z plików: {data_path} lub {disc_data_path}{clear}")
         except StopException as e:
             print(f"{red}BŁĄD:{clear} {purple}{e}{clear}")
+            result_tuple = (i, 'Error', 'Error', 'Error', 'Error')
+            results_list.append(result_tuple)
         except Exception as e:
             print(f"{red}BŁĄD:{clear} {purple}podczas testowania lub obliczeń dla {data_path}: {e}{clear}")
 
@@ -59,13 +65,10 @@ if __name__ == "__main__":
             "cuts_i": [res[3] for res in results_list],
             "Ocena_i": [res[4] for res in results_list],
         }
-    )
+    , strict=False)
     pl.Config.set_tbl_hide_dataframe_shape(True)
     pl.Config.set_tbl_hide_column_data_types(True)
     pl.Config.set_tbl_rows(i+1)
     print(df)
 
     # df.write_csv("results.csv", separator=',')
-
-    last_ocena = results_list[-1][4] if results_list else None
-    print(f"\nOstatnia obliczona Ocena: {last_ocena:.4f}" if last_ocena is not None else "\nNie obliczono żadnej Oceny.")

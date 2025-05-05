@@ -49,7 +49,7 @@ class Tests:
     def test_all(self, debug=False) -> None:
         self.compare_non_deterministic_objects(lossless=True, debug=debug)
         self.check_data_size(debug=debug)
-        self.validate_discretization_intervals()
+        self.validate_discretization_intervals(debug=debug)
 
     def _test_passed(self, message: str, passed: bool) -> None:
         green = '\033[0;32m'
@@ -140,34 +140,6 @@ class Tests:
                 print(f'In discretized data lossless: {self._get_non_deterministic_objects_disc_lossless()} non-deterministic objects')
 
     def count_discretization_cuts(self) -> int:
-        total_cuts = 0
-        conditional_attributes = self.disc_data.columns[:-1]  # Pomijamy kolumnę decyzyjną
-
-        print("\nLiczenie cięć dyskretyzacji...")
-        for col_name in conditional_attributes:
-            unique_intervals = self.disc_data[col_name].unique().to_list()
-            cuts_for_attribute = set()
-
-            #Parsowanie
-            for interval_str in unique_intervals:
-                interval_str = str(interval_str).strip()
-                import re
-                numbers = re.findall(r"[-+]?\d*\.\d+|[-+]?\d+", interval_str)
-                for num_str in numbers:
-                    try:
-                        cuts_for_attribute.add(float(num_str))
-                    except ValueError:
-                        print(f"  OSTRZEŻENIE: Nie można sparsować wartości '{num_str}' w przedziale '{interval_str}'")
-                        pass
-
-            num_cuts_attr = len(cuts_for_attribute)
-            print(f"  Atrybut '{col_name}': {num_cuts_attr} unikalnych cięć.")
-            total_cuts += num_cuts_attr
-
-        print(f"Łączna liczba unikalnych cięć: {total_cuts}")
-        return total_cuts
-
-    def count_discretization_cuts(self) -> int:
         """
         Wylicza łączną liczbę unikalnych cięć użytych we wszystkich atrybutach warunkowych
         na podstawie analizy przedziałów w danych zdyskretyzowanych.
@@ -201,7 +173,7 @@ class Tests:
         print(f"Łączna liczba unikalnych cięć: {total_cuts}")
         return total_cuts
 
-    def validate_discretization_intervals(self) -> None:
+    def validate_discretization_intervals(self, debug=False) -> None:
         """
         Sprawdza, czy każda oryginalna wartość atrybutu warunkowego należy do
         odpowiadającego jej przedziału w danych zdyskretyzowanych.
@@ -212,36 +184,36 @@ class Tests:
         conditional_attributes = self.data.columns[:-1]
         num_rows = self.data.shape[0]
 
-    def check_value_in_interval(value, interval_str):
-        import re
-        import math
+        def check_value_in_interval(value, interval_str: str) -> bool:
+            import re
+            import math
 
-        interval_str = str(interval_str).strip().lower()
+            interval_str = str(interval_str).strip().lower()
 
-        try:
-            interval_val = float(interval_str)
-            return math.isclose(value, interval_val)
-        except ValueError:
-            pass  # Not a direct float
+            try:
+                interval_val = float(interval_str)
+                return math.isclose(value, interval_val)
+            except ValueError:
+                pass  # Not a direct float
 
-        m = re.fullmatch(
-            r"([\(\[])\s*(-inf|inf|[-+]?\d*\.?\d+)\s*;\s*(-inf|inf|[-+]?\d*\.?\d+)\s*([\)\]])",
-            interval_str
-        )
+            m = re.fullmatch(
+                r"([\(\[])\s*(-inf|inf|[-+]?\d*\.?\d+)\s*;\s*(-inf|inf|[-+]?\d*\.?\d+)\s*([\)\]])",
+                interval_str
+            )
 
-        if not m:
-            print(f"  OSTRZEŻENIE: Nie można sparsować przedziału: '{interval_str}'")
-            return False
+            if not m:
+                print(f"  OSTRZEŻENIE: Nie można sparsować przedziału: '{interval_str}'")
+                return False
 
-        left_bracket, lower_str, upper_str, right_bracket = m.groups()
+            left_bracket, lower_str, upper_str, right_bracket = m.groups()
 
-        lower = -float('inf') if lower_str == '-inf' else (float('inf') if lower_str == 'inf' else float(lower_str))
-        upper = float('inf') if upper_str == 'inf' else (-float('inf') if upper_str == '-inf' else float(upper_str))
+            lower = -float('inf') if lower_str == '-inf' else (float('inf') if lower_str == 'inf' else float(lower_str))
+            upper = float('inf') if upper_str == 'inf' else (-float('inf') if upper_str == '-inf' else float(upper_str))
 
-        lower_ok = value > lower if left_bracket == '(' else value >= lower
-        upper_ok = value < upper if right_bracket == ')' else value <= upper
+            lower_ok = value > lower if left_bracket == '(' else value >= lower
+            upper_ok = value < upper if right_bracket == ')' else value <= upper
 
-        return lower_ok and upper_ok
+            return lower_ok and upper_ok
 
         for i in range(num_rows):
             for j, col_name in enumerate(conditional_attributes):
@@ -249,7 +221,7 @@ class Tests:
                 interval_representation = self.disc_data[i, j]
 
                 try:
-                   original_value_float = float(original_value)
+                    original_value_float = float(original_value)
                 except (ValueError, TypeError):
                     print(f"  OSTRZEŻENIE: Nie można sparsować wartości '{original_value}' w wierszu {i}, kolumna '{col_name}'")
                     continue
@@ -318,5 +290,3 @@ if __name__ == "__main__":
     # iris3D = Iris3D()
     # test_iris3DBAD = Tests(data_path=iris3D.data_path, disc_data_path=iris3D.disc_path, has_header=False)
     # test_iris3DBAD.test_all()
-
-    
