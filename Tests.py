@@ -212,32 +212,36 @@ class Tests:
         conditional_attributes = self.data.columns[:-1]
         num_rows = self.data.shape[0]
 
-        def check_value_in_interval(value, interval_str):
-            interval_str = str(interval_str).strip()
-            import re
-            import math
+    def check_value_in_interval(value, interval_str):
+        import re
+        import math
 
-            try:
-                interval_val = float(interval_str)
-                return math.isclose(value, interval_val)
-            except ValueError:
-                print(f"  OSTRZEŻENIE: Nie można sparsować wartości '{interval_str}'")
-                pass
+        interval_str = str(interval_str).strip().lower()
 
-            m = re.match(r"([(\[])\s*(-inf|[-+]?\d*\.?\d+)\s*;\s*(inf|[-+]?\d*\.?\d+)\s*([)\]])", interval_str)
-            if not m:
-                print(f"  OSTRZEŻENIE: Nie można sparsować przedziału: '{interval_str}'")
-                return False
+        try:
+            interval_val = float(interval_str)
+            return math.isclose(value, interval_val)
+        except ValueError:
+            pass  # Not a direct float
 
-            left_bracket, lower_str, upper_str, right_bracket = m.groups()
+        m = re.fullmatch(
+            r"([\(\[])\s*(-inf|inf|[-+]?\d*\.?\d+)\s*;\s*(-inf|inf|[-+]?\d*\.?\d+)\s*([\)\]])",
+            interval_str
+        )
 
-            lower = -float('inf') if lower_str == '-inf' else float(lower_str)
-            upper = float('inf') if upper_str == 'inf' else float(upper_str)
+        if not m:
+            print(f"  OSTRZEŻENIE: Nie można sparsować przedziału: '{interval_str}'")
+            return False
 
-            lower_ok = value > lower if left_bracket == '(' else value >= lower
-            upper_ok = value < upper if right_bracket == ')' else value <= upper
+        left_bracket, lower_str, upper_str, right_bracket = m.groups()
 
-            return lower_ok and upper_ok
+        lower = -float('inf') if lower_str == '-inf' else (float('inf') if lower_str == 'inf' else float(lower_str))
+        upper = float('inf') if upper_str == 'inf' else (-float('inf') if upper_str == '-inf' else float(upper_str))
+
+        lower_ok = value > lower if left_bracket == '(' else value >= lower
+        upper_ok = value < upper if right_bracket == ')' else value <= upper
+
+        return lower_ok and upper_ok
 
         for i in range(num_rows):
             for j, col_name in enumerate(conditional_attributes):
