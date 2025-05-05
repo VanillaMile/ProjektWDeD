@@ -232,8 +232,6 @@ class Tests:
                         f"Błąd dyskretyzacji! Wartość {original_value_float} (wiersz {i}, kolumna '{col_name}') "
                         f"nie należy do przedziału '{interval_representation}'."
                     )
-            if (i + 1) % 100 == 0: print(f"  Sprawdzono {i+1}/{num_rows} wierszy.")
-
         self._test_passed(test_name, True)
 
 # Test the testing algorithm

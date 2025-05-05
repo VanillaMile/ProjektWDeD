@@ -4,7 +4,7 @@ from Tests import Tests, StopException
 from time import time
 
 def example_algorithm(data_path: str) -> None:
-    print(f"    -> Symulacja dyskretyzacji dla: {data_path}")
+    print(f"\033[0;35m    -> Symulacja dyskretyzacji dla: {data_path} \033[0;0m")
     pass
 
 if __name__ == "__main__":
@@ -22,12 +22,24 @@ if __name__ == "__main__":
     yellow = '\033[0;33m'
 
     results_list = []
+    times = []
+
+    for data_path in data_paths:
+        try:
+            print(f"\n{yellow}--- Mierzenie czasu algorytmu dyskretyzującego dla {data_path} ---{clear}")
+            pair_start_time = time()
+            example_algorithm(data_path)
+            pair_end_time = time()
+            time_i = pair_end_time - pair_start_time
+            times.append(time_i)
+        except Exception as e:
+            print(f"{red}BŁĄD:{clear} {purple}podczas mierzenia czasu algorytmu dla {data_path}: {e}{clear}")
+            times.append('Error')
 
     for i, (data_path, disc_data_path) in enumerate(zip(data_paths, disc_data_paths)):
         print(f"\n{yellow}--- Testowanie pary plików i obliczanie Oceny: {data_path} i {disc_data_path} (i={i}) ---{clear}")
         try:
-            pair_start_time = time()
-
+            time_i = times[i]
             tests = Tests(data_path, disc_data_path, has_header=False)
 
             tests.test_all(debug=False)
@@ -35,22 +47,19 @@ if __name__ == "__main__":
             cuts_i = tests.count_discretization_cuts()
             det_i = tests.non_deterministic_objects_original
         
-            pair_end_time = time()
-            time_i = pair_end_time - pair_start_time
-
             ocena_i = 0.5 * float(det_i) + 0.25 * float(cuts_i) + time_i
             result_tuple = (i, time_i, det_i, cuts_i, ocena_i)
             results_list.append(result_tuple)
 
             print(f"Liczba niedeterministycznych obiektów (det_{i}): {purple}{det_i}{clear}")
-            print(f"Czas walidacji i obliczeń dla pary (time_{i}): {purple}{time_i:.4f} sekund{clear}")
+            print(f"Czas pracy algorytmu (time_{i}): {purple}{time_i:.4f} sekund{clear}")
             print(f"Obliczona Ocena_{i}: {purple}{ocena_i:.4f}{clear}")
             print(f"{green}--- Testy i obliczenia dla {data_path} zakończone pomyślnie ---{clear}")
         except FileNotFoundError:
             print(f"{red}BŁĄD:{clear} {purple}Nie znaleziono jednego z plików: {data_path} lub {disc_data_path}{clear}")
         except StopException as e:
             print(f"{red}BŁĄD:{clear} {purple}{e}{clear}")
-            result_tuple = (i, 'Error', 'Error', 'Error', 'Error')
+            result_tuple = (i, time_i, 'Error', 'Error', 'Error')
             results_list.append(result_tuple)
         except Exception as e:
             print(f"{red}BŁĄD:{clear} {purple}podczas testowania lub obliczeń dla {data_path}: {e}{clear}")
