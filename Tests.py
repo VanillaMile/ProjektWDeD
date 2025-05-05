@@ -8,7 +8,7 @@ class StopException(Exception):
         super().__init__(message)
 
 class Tests:
-    def check_data_size(self) -> None:
+    def check_data_size(self, debug=False) -> None:
         """
         Sprawdza, czy liczba obiektów w danych oryginalnych i zdyskretyzowanych jest taka sama.
         W przypadku niezgodności zgłasza wyjątek StopException.
@@ -24,10 +24,15 @@ class Tests:
             )
         else:
             self._test_passed(test_name, True)
+        if debug:
             print(f"Liczba obiektów zgodna: {original_size}")
+
+
     def __init__(self, data_path: str, disc_data_path: str, has_header: bool) -> None:
         self.data = pl.read_csv(data_path, separator=',', has_header=has_header)
         self.disc_data = pl.read_csv(disc_data_path, separator=',', has_header=has_header)
+        self.non_deterministic_objects_disc = 0
+        self.non_deterministic_objects_original = 0
 
         if not has_header:
             labels = ['x' + str(i) for i in range(self.data.shape[1] - 1)]
@@ -41,8 +46,10 @@ class Tests:
 
         print(self.data['Dec'])
 
-    def test_all(self) -> None:
-        self.compare_non_deterministic_objects(lossless=True)
+    def test_all(self, debug=False) -> None:
+        self.compare_non_deterministic_objects(lossless=True, debug=debug)
+        self.check_data_size(debug=debug)
+        self.validate_discretization_intervals()
 
     def _test_passed(self, message: str, passed: bool) -> None:
         green = '\033[0;32m'
@@ -73,6 +80,7 @@ class Tests:
         temp_data = self.data.unique()
         odd_ones = temp_data.filter(temp_data.select(temp_data.columns[:-1]).is_duplicated())
         joined = self.data.join(odd_ones, on=self.data.columns, how=how)
+        self.non_deterministic_objects_original = joined.shape[0]
         return joined.shape[0]
 
     def _get_non_deterministic_objects_disc_lossless(self, how: str = 'inner') -> int:
@@ -81,6 +89,7 @@ class Tests:
         temp_data = self.disc_data.unique()
         odd_ones = temp_data.filter(temp_data.select(temp_data.columns[:-1]).is_duplicated())
         joined = self.disc_data.join(odd_ones, on=self.disc_data.columns, how=how)
+        self.non_deterministic_objects_disc = joined.shape[0]
         return joined.shape[0]
 
     def compare_non_deterministic_objects(self, lossless: bool = True, debug: bool = False) -> None:
@@ -107,7 +116,8 @@ class Tests:
         It is however, twice as fast as the lossless version, so if the problem of bad ranges is fixed in other tests
         this may by a good way to check for non-deterministic objects/ranges in data.
         """
-        test_name = 'Compare non-deterministic objects'
+        # test_name = 'Compare non-deterministic objects'
+        test_name = 'Porównywanie obiektów niedeterministycznych'
         if lossless:
             if self._get_non_deterministic_objects_disc_lossless() != self._get_non_deterministic_objects_original_lossless():
                 self._test_passed(test_name, False)
@@ -129,7 +139,6 @@ class Tests:
                 print(f'In original data lossless: {self._get_non_deterministic_objects_original_lossless()} non-deterministic objects')
                 print(f'In discretized data lossless: {self._get_non_deterministic_objects_disc_lossless()} non-deterministic objects')
 
-    # Other methods here
     def count_discretization_cuts(self) -> int:
         total_cuts = 0
         conditional_attributes = self.disc_data.columns[:-1]  # Pomijamy kolumnę decyzyjną
@@ -148,6 +157,7 @@ class Tests:
                     try:
                         cuts_for_attribute.add(float(num_str))
                     except ValueError:
+                        print(f"  OSTRZEŻENIE: Nie można sparsować wartości '{num_str}' w przedziale '{interval_str}'")
                         pass
 
             num_cuts_attr = len(cuts_for_attribute)
@@ -156,55 +166,6 @@ class Tests:
 
         print(f"Łączna liczba unikalnych cięć: {total_cuts}")
         return total_cuts
-
-    # Test the testing algorithm
-    def test_compare_non_deterministic_objects(debug: bool = True, plot: bool = False) -> None:
-        color = '\033[0;33m'
-        clear = '\033[0;0m'
-
-        print (f'{color}Testing Iris 2D non-deterministic data with good discretization{clear}')
-        irisND = Iris2DNonDeterministic()
-        test_irisND = Tests(data_path=irisND.data_path, disc_data_path=irisND.disc_path, has_header=False)
-        test_irisND.compare_non_deterministic_objects(lossless=True, debug=debug)
-        if plot:
-            irisND.plot()
-
-        try:
-            print (f'{color}Testing Iris 2D non-deterministic data with bad discretization{clear}')
-            irisNDBAD = BADIris2DNonDeterministic()
-            test_irisNDBAD = Tests(data_path=irisNDBAD.data_path, disc_data_path=irisNDBAD.disc_path, has_header=False)
-            test_irisNDBAD.compare_non_deterministic_objects(lossless=True, debug=debug)
-        except StopException as e:
-            # purple = '\033[0;35m'
-            print('\033[0;35m', end='')
-            print(e)
-            print("Test failed successfully")
-            if plot:
-                irisNDBAD.plot()
-            # clear
-            print("\033[0;0m", end='')
-
-        print (f'{color}Testing Iris 3D non-deterministic data with good discretization{clear}')
-        iris3D = Iris3D()
-        test_iris3D = Tests(data_path=iris3D.data_path, disc_data_path=iris3D.disc_path, has_header=False)
-        test_iris3D.compare_non_deterministic_objects(lossless=True, debug=debug)
-        if plot:
-            iris3D.plot()
-
-        try:
-            print (f'{color}Testing Iris 3D non-deterministic data with bad discretization{clear}')
-            iris3DBAD = Iris3DBAD()
-            test_iris3DBAD = Tests(data_path=iris3DBAD.data_path, disc_data_path=iris3DBAD.disc_path, has_header=False)
-            test_iris3DBAD.compare_non_deterministic_objects(lossless=True, debug=debug)
-        except StopException as e:
-            # purple
-            print('\033[0;35m', end='')
-            print(e)
-            print("Test failed successfully")
-            if plot:
-                iris3DBAD.plot()
-            # clear
-            print("\033[0;0m", end='')
 
     def count_discretization_cuts(self) -> int:
         """
@@ -230,6 +191,7 @@ class Tests:
                     try:
                         cuts_for_attribute.add(float(num_str))
                     except ValueError:
+                        print(f"  OSTRZEŻENIE: Nie można sparsować wartości '{num_str}' w przedziale '{interval_str}'")
                         pass
 
             num_cuts_attr = len(cuts_for_attribute)
@@ -245,7 +207,7 @@ class Tests:
         odpowiadającego jej przedziału w danych zdyskretyzowanych.
         W przypadku niezgodności zgłasza wyjątek StopException.
         """
-        test_name = 'LA: Sprawdzenie poprawności przypisania do przedziałów'
+        test_name = 'Sprawdzenie poprawności przypisania do przedziałów'
 
         conditional_attributes = self.data.columns[:-1]
         num_rows = self.data.shape[0]
@@ -255,12 +217,12 @@ class Tests:
             import re
             import math
 
-
             try:
                 interval_val = float(interval_str)
                 return math.isclose(value, interval_val)
             except ValueError:
-                 pass
+                print(f"  OSTRZEŻENIE: Nie można sparsować wartości '{interval_str}'")
+                pass
 
             m = re.match(r"([(\[])\s*(-inf|[-+]?\d*\.?\d+)\s*;\s*(inf|[-+]?\d*\.?\d+)\s*([)\]])", interval_str)
             if not m:
@@ -282,11 +244,11 @@ class Tests:
                 original_value = self.data[i, j]
                 interval_representation = self.disc_data[i, j]
 
-
                 try:
                    original_value_float = float(original_value)
                 except (ValueError, TypeError):
-                   continue
+                    print(f"  OSTRZEŻENIE: Nie można sparsować wartości '{original_value}' w wierszu {i}, kolumna '{col_name}'")
+                    continue
 
                 if not check_value_in_interval(original_value_float, interval_representation):
                     self._test_passed(test_name, False)
@@ -297,7 +259,55 @@ class Tests:
             if (i + 1) % 100 == 0: print(f"  Sprawdzono {i+1}/{num_rows} wierszy.")
 
         self._test_passed(test_name, True)
-        print("Wszystkie wartości mieszczą się w swoich przedziałach.")
+
+# Test the testing algorithm
+def test_compare_non_deterministic_objects(debug: bool = True, plot: bool = False) -> None:
+    color = '\033[0;33m'
+    clear = '\033[0;0m'
+
+    print (f'{color}Testing Iris 2D non-deterministic data with good discretization{clear}')
+    irisND = Iris2DNonDeterministic()
+    test_irisND = Tests(data_path=irisND.data_path, disc_data_path=irisND.disc_path, has_header=False)
+    test_irisND.compare_non_deterministic_objects(lossless=True, debug=debug)
+    if plot:
+        irisND.plot()
+
+    try:
+        print (f'{color}Testing Iris 2D non-deterministic data with bad discretization{clear}')
+        irisNDBAD = BADIris2DNonDeterministic()
+        test_irisNDBAD = Tests(data_path=irisNDBAD.data_path, disc_data_path=irisNDBAD.disc_path, has_header=False)
+        test_irisNDBAD.compare_non_deterministic_objects(lossless=True, debug=debug)
+    except StopException as e:
+        # purple = '\033[0;35m'
+        print('\033[0;35m', end='')
+        print(e)
+        print("Test failed successfully")
+        if plot:
+            irisNDBAD.plot()
+        # clear
+        print("\033[0;0m", end='')
+
+    print (f'{color}Testing Iris 3D non-deterministic data with good discretization{clear}')
+    iris3D = Iris3D()
+    test_iris3D = Tests(data_path=iris3D.data_path, disc_data_path=iris3D.disc_path, has_header=False)
+    test_iris3D.compare_non_deterministic_objects(lossless=True, debug=debug)
+    if plot:
+        iris3D.plot()
+
+    try:
+        print (f'{color}Testing Iris 3D non-deterministic data with bad discretization{clear}')
+        iris3DBAD = Iris3DBAD()
+        test_iris3DBAD = Tests(data_path=iris3DBAD.data_path, disc_data_path=iris3DBAD.disc_path, has_header=False)
+        test_iris3DBAD.compare_non_deterministic_objects(lossless=True, debug=debug)
+    except StopException as e:
+        # purple
+        print('\033[0;35m', end='')
+        print(e)
+        print("Test failed successfully")
+        if plot:
+            iris3DBAD.plot()
+        # clear
+        print("\033[0;0m", end='')
 
 if __name__ == "__main__":
     test_compare_non_deterministic_objects(debug=True, plot=False)
