@@ -92,6 +92,15 @@ class Tests:
         self.non_deterministic_objects_disc = joined.shape[0]
         return joined.shape[0]
 
+    def get_fair_det_count(self) -> int:
+        """
+        Returns number of unique non-deterministic ranges in the discretized data.
+        it promotes merging already non-deterministic ranges into one non-deterministic range.
+        """
+        data = self.disc_data.unique()
+        non_deterministic_rng = data.select(data.columns[:-1]).is_duplicated().sum()
+        return non_deterministic_rng
+
     def compare_non_deterministic_objects(self, lossless: bool = True, debug: bool = False) -> None:
         """
         with_loss method is skipping information which in rare cases may give wrong results.
@@ -139,7 +148,7 @@ class Tests:
                 print(f'In original data lossless: {self._get_non_deterministic_objects_original_lossless()} non-deterministic objects')
                 print(f'In discretized data lossless: {self._get_non_deterministic_objects_disc_lossless()} non-deterministic objects')
 
-    def count_discretization_cuts(self) -> int:
+    def count_discretization_cuts(self, debug=False) -> int:
         """
         Wylicza łączną liczbę unikalnych cięć użytych we wszystkich atrybutach warunkowych
         na podstawie analizy przedziałów w danych zdyskretyzowanych.
@@ -148,7 +157,6 @@ class Tests:
         total_cuts = 0
         conditional_attributes = self.disc_data.columns[:-1]
 
-        print("\nLiczenie cięć dyskretyzacji...")
         for col_name in conditional_attributes:
             unique_intervals = self.disc_data[col_name].unique().to_list()
             cuts_for_attribute = set()
@@ -167,10 +175,9 @@ class Tests:
                         pass
 
             num_cuts_attr = len(cuts_for_attribute)
-            print(f"  Atrybut '{col_name}': {num_cuts_attr} unikalnych cięć.")
             total_cuts += num_cuts_attr
-
-        print(f"Łączna liczba unikalnych cięć: {total_cuts}")
+            if debug:
+                print(f"  Atrybut '{col_name}': {num_cuts_attr} unikalnych cięć.")
         return total_cuts
 
     def validate_discretization_intervals(self, debug=False) -> None:

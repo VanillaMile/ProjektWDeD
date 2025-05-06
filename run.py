@@ -45,30 +45,37 @@ if __name__ == "__main__":
             tests.test_all(debug=False)
 
             cuts_i = tests.count_discretization_cuts()
-            det_i = tests.non_deterministic_objects_original
+            # det_i = tests.non_deterministic_objects_original
+            det_i = tests.get_fair_det_count()
         
             ocena_i = 0.5 * float(det_i) + 0.25 * float(cuts_i) + time_i
             result_tuple = (i, time_i, det_i, cuts_i, ocena_i)
             results_list.append(result_tuple)
 
-            print(f"Liczba niedeterministycznych obiektów (det_{i}): {purple}{det_i}{clear}")
+            print(f'Łączna liczba unikalnych cięć: {purple}{cuts_i}{clear}')
+            print(f"Liczba unikalnych niedeterministycznych przedziałów (det_{i}): {purple}{det_i}{clear}")
             print(f"Czas pracy algorytmu (time_{i}): {purple}{time_i:.4f} sekund{clear}")
             print(f"Obliczona Ocena_{i}: {purple}{ocena_i:.4f}{clear}")
             print(f"{green}--- Testy i obliczenia dla {data_path} zakończone pomyślnie ---{clear}")
         except FileNotFoundError:
             print(f"{red}BŁĄD:{clear} {purple}Nie znaleziono jednego z plików: {data_path} lub {disc_data_path}{clear}")
+            result_tuple = (i, time_i, 'FileNotFound', 'FileNotFound', 'FileNotFound')
+            results_list.append(result_tuple)
         except StopException as e:
             print(f"{red}BŁĄD:{clear} {purple}{e}{clear}")
-            result_tuple = (i, time_i, 'Error', 'Error', 'Error')
+            result_tuple = (i, time_i, 'Failed', 'Failed', 'Failed')
             results_list.append(result_tuple)
         except Exception as e:
             print(f"{red}BŁĄD:{clear} {purple}podczas testowania lub obliczeń dla {data_path}: {e}{clear}")
+            result_tuple = (i, time_i, 'Error', 'Error', 'Error')
+            results_list.append(result_tuple)
 
     print(f"\n{purple}========= Zakończono wszystkie operacje ========={clear}")
 
     df = pl.DataFrame(
         {
             "i": [res[0] for res in results_list],
+            "data_path": [data_paths[res[0]] for res in results_list],
             "time_i": [res[1] for res in results_list],
             "det_i": [res[2] for res in results_list],
             "cuts_i": [res[3] for res in results_list],
@@ -79,5 +86,9 @@ if __name__ == "__main__":
     pl.Config.set_tbl_hide_column_data_types(True)
     pl.Config.set_tbl_rows(i+1)
     print(df)
+    if not all(isinstance(value, (int, float)) for value in df['Ocena_i']):
+        print(f"{red}Podczas weryfikacji danych wystąpił błąd, ocena końcowa nie może być wyliczona{clear}")
+    else:
+        print(f"{green}Ocena końcowa: {df['Ocena_i'].sum()}{clear}")
 
     # df.write_csv("results.csv", separator=',')
