@@ -94,12 +94,17 @@ class Tests:
 
     def get_fair_det_count(self) -> int:
         """
-        Returns number of unique non-deterministic ranges in the discretized data.
-        it promotes merging already non-deterministic ranges into one non-deterministic range.
+        Returns total count of non-deterministic objects in the disc data.
         """
-        data = self.disc_data.unique()
-        non_deterministic_rng = data.select(data.columns[:-1]).is_duplicated().sum()
-        return non_deterministic_rng
+        # data = self.disc_data.unique()
+        # non_deterministic_rng = data.select(data.columns[:-1]).is_duplicated().sum()
+        # return non_deterministic_rng
+
+        temp_data = self.disc_data.unique()
+        odd_ones = temp_data.filter(temp_data.select(temp_data.columns[:-1]).is_duplicated())
+        joined = self.disc_data.join(odd_ones, on=self.disc_data.columns, how='inner')
+        self.non_deterministic_objects_disc = joined.shape[0]
+        return joined.shape[0]
 
     def compare_non_deterministic_objects(self, lossless: bool = True, debug: bool = False) -> None:
         """
