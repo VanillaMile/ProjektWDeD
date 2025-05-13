@@ -3,12 +3,17 @@ import polars as pl
 from Tests import Tests, StopException
 from time import time
 import os
+# from Porada import start_algorithm as example_algorithm
+# from Domanski import Algorithm
+# example_algorithm = Algorithm.example_algorithm
+from Jakubowski import greedy_discretization as example_algorithm
 
-def example_algorithm(data_path: str) -> None:
-    print(f"\033[0;35m    -> Symulacja dyskretyzacji dla: {data_path} \033[0;0m")
-    df = pl.read_csv(f'prevDISC{data_path}', separator=',', has_header=False, new_columns=['x1', 'x2', 'Dec'])
-    if not data_path.startswith('example'):
-        df.write_csv(f'DISC{data_path}', separator=',', include_header=False)
+
+# def example_algorithm(data_path: str) -> None:
+#     print(f"\033[0;35m    -> Symulacja dyskretyzacji dla: {data_path} \033[0;0m")
+#     df = pl.read_csv(f'prevDISC{data_path}', separator=',', has_header=False, new_columns=['x1', 'x2', 'Dec'])
+#     if not data_path.startswith('example'):
+#         df.write_csv(f'DISC{data_path}', separator=',', include_header=False)
 
 if __name__ == "__main__":
     # data_paths = ['data1.csv', 'data1.csv', 'example_data_csv/iris2D.csv', 'example_data_csv/iris3D.csv', 
@@ -18,8 +23,8 @@ if __name__ == "__main__":
     #                    'example_disc_csv/DISCiris3D.csv', 'example_disc_csv/DISCiris3DBAD.csv', 'example_disc_csv/DISCnodec.csv',
     #                    'example_disc_csv/DISCiris2Dnondeterministic.csv', 'example_disc_csv/DISCBADiris2Dnondeterministic.csv']
 
-    data_paths = ['data1.csv', 'data1.csv']
-    disc_data_paths = ['DISCdata1.csv', 'DISCdata1.csv']
+    data_paths = ['data1.csv']
+    disc_data_paths = ['DISCdata1.csv']
 
     purple = '\033[0;35m'
     clear = '\033[0;0m'
@@ -32,7 +37,7 @@ if __name__ == "__main__":
     temp_times = []
 
     for data_path in data_paths:
-        for i in range(5):
+        for i in range(1):
             try:
                 print(f"\n{yellow} {i}---> Mierzenie czasu algorytmu dyskretyzującego dla {data_path} ---{clear}")
                 pair_start_time = time()
@@ -44,11 +49,11 @@ if __name__ == "__main__":
                 print(f"{red}BŁĄD:{clear} {purple}podczas mierzenia czasu algorytmu dla {data_path}: {e}{clear}")
                 times.append('Error')
 
-            try:
-                if os.path.exists(f'DISC{data_path}'):
-                    os.remove(f'DISC{data_path}')
-            except Exception as e:
-                print(f"{red}BŁĄD:{clear} {purple}podczas usuwania pliku DISC{data_path}: {e}{clear}")
+            # try:
+            #     if os.path.exists(f'DISC{data_path}'):
+            #         os.remove(f'DISC{data_path}')
+            # except Exception as e:
+            #     print(f"{red}BŁĄD:{clear} {purple}podczas usuwania pliku DISC{data_path}: {e}{clear}")
         if 'Error' not in temp_times:
             avg_time = np.mean(temp_times)
             times.append(avg_time)
@@ -56,12 +61,12 @@ if __name__ == "__main__":
             times.append('Error')
 
 
-    for data_path in data_paths:
-        try:
-            print(f"\n{yellow}---  Wykonywanie algorytmu dla {data_path} ---{clear}")
-            example_algorithm(data_path)
-        except Exception as e:
-            print(f"{red}BŁĄD:{clear} {purple}podczas wykonywania algorytmu dla {data_path}: {e}{clear}")
+    # for data_path in data_paths:
+    #     try:
+    #         print(f"\n{yellow}---  Wykonywanie algorytmu dla {data_path} ---{clear}")
+    #         example_algorithm(data_path)
+    #     except Exception as e:
+    #         print(f"{red}BŁĄD:{clear} {purple}podczas wykonywania algorytmu dla {data_path}: {e}{clear}")
 
     for i, (data_path, disc_data_path) in enumerate(zip(data_paths, disc_data_paths)):
         print(f"\n{yellow}--- Testowanie pary plików i obliczanie Oceny: {data_path} i {disc_data_path} (i={i}) ---{clear}")

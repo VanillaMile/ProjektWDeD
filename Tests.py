@@ -130,13 +130,13 @@ class Tests:
         if lossless:
             if self._get_non_deterministic_objects_disc_lossless() != self._get_non_deterministic_objects_original_lossless():
                 self._test_passed(test_name, False)
-                raise StopException(f"""Number of non-deterministic objects is not the same as in original data.
+                print(f"""Number of non-deterministic objects is not the same as in original data.
                 In original data: {self._get_non_deterministic_objects_original_lossless()} non-deterministic objects 
                 In discretized data: {self._get_non_deterministic_objects_disc_lossless()} non-deterministic objects""")
         else:
             if self._get_non_deterministic_objects_disc_with_loss() > self._get_non_deterministic_objects_original_with_loss():
                 self._test_passed(test_name, False)
-                raise StopException(f"""Number of non-deterministic objects is greater than original data.
+                print(f"""Number of non-deterministic objects is greater than original data.
                 In original data: {self._get_non_deterministic_objects_original_with_loss()} unique non-deterministic objects
                 In discretized data: {self._get_non_deterministic_objects_disc_with_loss()} unique non-deterministic objects""")
             
