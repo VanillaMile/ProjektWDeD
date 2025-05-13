@@ -2,10 +2,10 @@ import numpy as np
 import polars as pl
 from Tests import Tests, StopException
 from time import time
-from Porada import start_algorithm as example_algorithm
+# from Porada import start_algorithm as example_algorithm
 # from Domanski import Algorithm
 # example_algorithm = Algorithm.example_algorithm
-# from Jakubowski import greedy_discretization as example_algorithm
+#from Jakubowski import greedy_discretization as example_algorithm
 
 if __name__ == "__main__":
     # data_paths = ['data1.csv', 'data1.csv', 'example_data_csv/iris2D.csv', 'example_data_csv/iris3D.csv', 
@@ -15,8 +15,8 @@ if __name__ == "__main__":
     #                    'example_disc_csv/DISCiris3D.csv', 'example_disc_csv/DISCiris3DBAD.csv', 'example_disc_csv/DISCnodec.csv',
     #                    'example_disc_csv/DISCiris2Dnondeterministic.csv', 'example_disc_csv/DISCBADiris2Dnondeterministic.csv']
 
-    data_paths = ['data2.csv']
-    disc_data_paths = ['DISCdata2.csv']
+    data_paths = ['ewal.csv', 'data3.csv', 'data2.csv', 'data1.csv']
+    disc_data_paths = ['DISCewal.csv', 'DISCdata3.csv', 'DISCdata2.csv', 'DISCdata1.csv']
 
     purple = '\033[0;35m'
     clear = '\033[0;0m'
@@ -57,7 +57,7 @@ if __name__ == "__main__":
             results_list.append(result_tuple)
 
             print(f'Łączna liczba unikalnych cięć: {purple}{cuts_i}{clear}')
-            print(f"Liczba unikalnych niedeterministycznych przedziałów (det_{i}): {purple}{det_i}{clear}")
+            print(f"Liczba wszystkich niedeterministycznych przedziałów (det_{i}): {purple}{det_i}{clear}")
             print(f"Sredni czas pracy algorytmu (time_{i}): {purple}{times[i]:.4f} sekund{clear}")
             print(f"Obliczona Ocena_{i}: {purple}{ocena_i:.4f}{clear}")
             print(f"{green}--- Testy i obliczenia dla {data_path} zakończone pomyślnie ---{clear}")
