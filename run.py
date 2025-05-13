@@ -2,18 +2,24 @@ import numpy as np
 import polars as pl
 from Tests import Tests, StopException
 from time import time
+import os
 
 def example_algorithm(data_path: str) -> None:
     print(f"\033[0;35m    -> Symulacja dyskretyzacji dla: {data_path} \033[0;0m")
-    pass
+    df = pl.read_csv(f'prevDISC{data_path}', separator=',', has_header=False, new_columns=['x1', 'x2', 'Dec'])
+    if not data_path.startswith('example'):
+        df.write_csv(f'DISC{data_path}', separator=',', include_header=False)
 
 if __name__ == "__main__":
-    data_paths = ['data1.csv', 'data1.csv', 'example_data_csv/iris2D.csv', 'example_data_csv/iris3D.csv', 
-                  'example_data_csv/iris3D.csv', 'example_data_csv/nodec.csv', 
-                  'example_data_csv/iris2Dnondeterministic.csv', 'example_data_csv/BADiris2Dnondeterministic.csv']
-    disc_data_paths = ['DISCdata1.csv', 'DISCdata1.csv', 'example_disc_csv/DISCiris2D.csv', 
-                       'example_disc_csv/DISCiris3D.csv', 'example_disc_csv/DISCiris3DBAD.csv', 'example_disc_csv/DISCnodec.csv',
-                       'example_disc_csv/DISCiris2Dnondeterministic.csv', 'example_disc_csv/DISCBADiris2Dnondeterministic.csv']
+    # data_paths = ['data1.csv', 'data1.csv', 'example_data_csv/iris2D.csv', 'example_data_csv/iris3D.csv', 
+    #               'example_data_csv/iris3D.csv', 'example_data_csv/nodec.csv', 
+    #               'example_data_csv/iris2Dnondeterministic.csv', 'example_data_csv/BADiris2Dnondeterministic.csv']
+    # disc_data_paths = ['DISCdata1.csv', 'DISCdata1.csv', 'example_disc_csv/DISCiris2D.csv', 
+    #                    'example_disc_csv/DISCiris3D.csv', 'example_disc_csv/DISCiris3DBAD.csv', 'example_disc_csv/DISCnodec.csv',
+    #                    'example_disc_csv/DISCiris2Dnondeterministic.csv', 'example_disc_csv/DISCBADiris2Dnondeterministic.csv']
+
+    data_paths = ['data1.csv', 'data1.csv']
+    disc_data_paths = ['DISCdata1.csv', 'DISCdata1.csv']
 
     purple = '\033[0;35m'
     clear = '\033[0;0m'
@@ -23,24 +29,46 @@ if __name__ == "__main__":
 
     results_list = []
     times = []
+    temp_times = []
+
+    for data_path in data_paths:
+        for i in range(5):
+            try:
+                print(f"\n{yellow} {i}---> Mierzenie czasu algorytmu dyskretyzującego dla {data_path} ---{clear}")
+                pair_start_time = time()
+                example_algorithm(data_path)
+                pair_end_time = time()
+                time_i = pair_end_time - pair_start_time
+                temp_times.append(time_i)
+            except Exception as e:
+                print(f"{red}BŁĄD:{clear} {purple}podczas mierzenia czasu algorytmu dla {data_path}: {e}{clear}")
+                times.append('Error')
+
+            try:
+                if os.path.exists(f'DISC{data_path}'):
+                    os.remove(f'DISC{data_path}')
+            except Exception as e:
+                print(f"{red}BŁĄD:{clear} {purple}podczas usuwania pliku DISC{data_path}: {e}{clear}")
+        if 'Error' not in temp_times:
+            avg_time = np.mean(temp_times)
+            times.append(avg_time)
+        else:
+            times.append('Error')
+
 
     for data_path in data_paths:
         try:
-            print(f"\n{yellow}--- Mierzenie czasu algorytmu dyskretyzującego dla {data_path} ---{clear}")
-            pair_start_time = time()
+            print(f"\n{yellow}---  Wykonywanie algorytmu dla {data_path} ---{clear}")
             example_algorithm(data_path)
-            pair_end_time = time()
-            time_i = pair_end_time - pair_start_time
-            times.append(time_i)
         except Exception as e:
-            print(f"{red}BŁĄD:{clear} {purple}podczas mierzenia czasu algorytmu dla {data_path}: {e}{clear}")
-            times.append('Error')
+            print(f"{red}BŁĄD:{clear} {purple}podczas wykonywania algorytmu dla {data_path}: {e}{clear}")
 
     for i, (data_path, disc_data_path) in enumerate(zip(data_paths, disc_data_paths)):
         print(f"\n{yellow}--- Testowanie pary plików i obliczanie Oceny: {data_path} i {disc_data_path} (i={i}) ---{clear}")
         try:
-            time_i = times[i]
             tests = Tests(data_path, disc_data_path, has_header=False)
+            if times[i] == 'Error':
+                raise StopException(f"Nie można wykonać testów dla {data_path} z powodu błędu podczas pomiaru czasu algorytmu.")
 
             tests.test_all(debug=False)
 
@@ -48,26 +76,26 @@ if __name__ == "__main__":
             # det_i = tests.non_deterministic_objects_original
             det_i = tests.get_fair_det_count()
         
-            ocena_i = 0.5 * float(det_i) + 0.25 * float(cuts_i) + time_i
-            result_tuple = (i, time_i, det_i, cuts_i, ocena_i)
+            ocena_i = 0.5 * float(det_i) + 0.25 * float(cuts_i) + times[i]
+            result_tuple = (i, times[i], det_i, cuts_i, ocena_i)
             results_list.append(result_tuple)
 
             print(f'Łączna liczba unikalnych cięć: {purple}{cuts_i}{clear}')
             print(f"Liczba unikalnych niedeterministycznych przedziałów (det_{i}): {purple}{det_i}{clear}")
-            print(f"Czas pracy algorytmu (time_{i}): {purple}{time_i:.4f} sekund{clear}")
+            print(f"Sredni czas pracy algorytmu (time_{i}): {purple}{times[i]:.4f} sekund{clear}")
             print(f"Obliczona Ocena_{i}: {purple}{ocena_i:.4f}{clear}")
             print(f"{green}--- Testy i obliczenia dla {data_path} zakończone pomyślnie ---{clear}")
         except FileNotFoundError:
             print(f"{red}BŁĄD:{clear} {purple}Nie znaleziono jednego z plików: {data_path} lub {disc_data_path}{clear}")
-            result_tuple = (i, time_i, 'FileNotFound', 'FileNotFound', 'FileNotFound')
+            result_tuple = (i, times[i], 'FileNotFound', 'FileNotFound', 'FileNotFound')
             results_list.append(result_tuple)
         except StopException as e:
             print(f"{red}BŁĄD:{clear} {purple}{e}{clear}")
-            result_tuple = (i, time_i, 'Failed', 'Failed', 'Failed')
+            result_tuple = (i, times[i], 'Failed', 'Failed', 'Failed')
             results_list.append(result_tuple)
         except Exception as e:
             print(f"{red}BŁĄD:{clear} {purple}podczas testowania lub obliczeń dla {data_path}: {e}{clear}")
-            result_tuple = (i, time_i, 'Error', 'Error', 'Error')
+            result_tuple = (i, times[i], 'Error', 'Error', 'Error')
             results_list.append(result_tuple)
 
     print(f"\n{purple}========= Zakończono wszystkie operacje ========={clear}")
@@ -76,7 +104,7 @@ if __name__ == "__main__":
         {
             "i": [res[0] for res in results_list],
             "data_path": [data_paths[res[0]] for res in results_list],
-            "time_i": [res[1] for res in results_list],
+            "avg_time_i": [res[1] for res in results_list],
             "det_i": [res[2] for res in results_list],
             "cuts_i": [res[3] for res in results_list],
             "Ocena_i": [res[4] for res in results_list],
@@ -89,6 +117,6 @@ if __name__ == "__main__":
     if not all(isinstance(value, (int, float)) for value in df['Ocena_i']):
         print(f"{red}Podczas weryfikacji danych wystąpił błąd, ocena końcowa nie może być wyliczona{clear}")
     else:
-        print(f"{green}Ocena końcowa: {df['Ocena_i'].sum()}{clear}")
+        print(f"{green}Ocena końcowa: {df['Ocena_i'].sum()} (Mniej = Lepiej){clear}")
 
     # df.write_csv("results.csv", separator=',')
